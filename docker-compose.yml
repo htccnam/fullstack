@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine            # Bản PostgreSQL 16 siêu nhẹ
+    container_name: fullstack_postgres   # Đặt tên dễ nhớ cho container
+    restart: always
+    environment:
+      POSTGRES_USER: dev_user            # Tên tài khoản DB
+      POSTGRES_PASSWORD: dev_password    # Mật khẩu DB
+      POSTGRES_DB: fullstack_db          # Tên Database sẽ tạo sẵn
+    ports:
+      - '5432:5432'                      # Mở cổng 5432 để máy tính bạn truy cập vào
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Lưu dữ liệu vào ổ cứng (tắt máy không bị mất dữ liệu)
+
+volumes:
+  postgres_data:
