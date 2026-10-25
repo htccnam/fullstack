@@ -4,6 +4,27 @@
 
 ---
 
+## 📋 BẢNG TÓM TẮT QUY TRÌNH THỰC HIỆN TỪ ĐẦU (STEP-BY-STEP ROADMAP)
+
+Bảng tổng hợp lộ trình 3 giai đoạn giúp lập trình viên bao quát toàn bộ tiến trình, tra cứu nhanh mã Sub-ID và đối chiếu kết quả đầu ra khi tự code lại từ đầu:
+
+| Giai đoạn | Bước | Mã định danh (Sub-ID) | Tập tin / Thao tác | Nhiệm vụ cốt lõi | Kết quả đầu ra (Deliverable) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Giai đoạn 1: Hạ tầng & Setup** | **Bước 1.1** | `[01-docker-compose:service-postgres]`<br>`[01-docker-compose:named-volumes]` | `docker-compose.yml`<br>`docker compose up -d` | Đóng gói và chạy cơ sở dữ liệu PostgreSQL trong container cô lập | Container `fullstack_postgres` chạy ngầm, mở cổng TCP 5432 và lưu trữ vào Volume `postgres_data` |
+| | **Bước 1.2** | `[01-package:init]` | `backend/package.json`<br>`npm init -y`<br>`npm install ...` | Khởi tạo dự án Node.js ES Modules (`"type": "module"`) và cài đặt Express, Prisma, Bcryptjs, CORS, Dotenv | Thư mục `backend/node_modules/` và `package.json` với đầy đủ thư viện phụ thuộc |
+| | **Bước 1.3** | `[01-env:server-port]`<br>`[01-env:database-url]` | `backend/.env`<br>`backend/.env.example` | Cấu hình cổng mạng HTTP (5000) và chuỗi Connection URI kết nối Database chuẩn RFC 3986 | `process.env.PORT` và `process.env.DATABASE_URL` sẵn sàng cho hệ thống tiêu thụ |
+| | **Bước 1.4** | `[01-contract:model-user]` | `backend/src/prisma/contract.prisma`<br>`npx prisma contract emit` | Thiết kế Data Contract lược đồ thực thể `User` bằng ngôn ngữ PSL chuẩn Prisma v8 | Tự động sinh `contract.json`, `contract.d.ts` và bảng `User` trong PostgreSQL |
+| | **Bước 1.5** | `[01-db:singleton]` | `backend/src/prisma/db.ts` | Khởi tạo thể hiện duy nhất (Singleton Pattern) của Prisma Client quản lý Connection Pool | Module `db` export singleton sẵn sàng cho toàn bộ backend import truy vấn |
+| **Giai đoạn 2: Xây dựng 3 tầng Code** | **Bước 2.1** | `[01-auth-service:register]` | `backend/src/services/auth.service.js` | Viết logic nghiệp vụ lõi: Kiểm tra trùng email, băm mật khẩu Bcrypt (10 rounds) và lưu DB | Hàm `registerUserService()` trả về object User an toàn (đã loại bỏ password) |
+| | **Bước 2.2** | `[01-auth-controller:register]` | `backend/src/controllers/auth.controller.js` | Tiếp nhận HTTP Request, áp dụng Guard Clauses (Validate email/password) và ánh xạ mã lỗi (201, 400, 409, 500) | Hàm `registerController()` phản hồi JSON chuẩn RESTful API cho Client |
+| | **Bước 2.3A** | `[01-auth-routes:register]` | `backend/src/routes/auth.routes.js` | Tạo Router nhánh độc lập và ánh xạ phương thức HTTP POST `/register` tới Controller | Thực thể `router` của Express sẵn sàng nạp vào file ứng dụng trung tâm |
+| | **Bước 2.3B** | `[01-app:init]`<br>`[01-app:middlewares]`<br>`[01-app:routes]` | `backend/src/app.js` | Cấu hình trung tâm ứng dụng Express: CORS, Body Parser `express.json()` và gắn tiền tố `/api/auth` | Thực thể `app` hoàn chỉnh đường ống Middleware & bảng định tuyến |
+| | **Bước 2.3C** | `[01-server:bootstrap]`<br>`[01-server:listen]` | `backend/src/server.js` | Nạp biến môi trường ở dòng đầu và kích hoạt máy chủ HTTP lắng nghe kết nối tại cổng 5000 | Server hoạt động tại `http://localhost:5000`, in thông báo sẵn sàng nhận request |
+| **Giai đoạn 3: Kiểm thử Postman** | **Bước 3.1** | `[01-verify:run-server]` | `node src/server.js` | Kích hoạt hệ sinh thái: Khởi động container Postgres và chạy ứng dụng Backend Node.js | Terminal thông báo Server kết nối thành công |
+| | **Bước 3.2** | `[01-verify:test-cases]` | Postman / Thunder Client | Kiểm thử 5 kịch bản: Thành công (201), Thiếu email (400), Thiếu pass (400), Pass ngắn (400), Trùng email (409) | Toàn bộ 5/5 test cases đều trả về mã HTTP và payload chính xác 100% |
+
+---
+
 ## 1. Sơ đồ luồng dữ liệu tổng quan
 
 Mô hình dữ liệu di chuyển theo kiến trúc phân tầng một chiều (Unidirectional Layered Architecture), đảm bảo triệt để nguyên tắc đơn trách nhiệm (Single Responsibility Principle):
