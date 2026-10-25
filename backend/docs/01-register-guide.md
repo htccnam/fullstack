@@ -8,47 +8,87 @@
 
 Mô hình dữ liệu di chuyển theo kiến trúc phân tầng một chiều (Unidirectional Layered Architecture), đảm bảo triệt để nguyên tắc đơn trách nhiệm (Single Responsibility Principle):
 
-```text
-[Client / Postman]
-       │
-       ▼  HTTP Request: POST http://localhost:5000/api/auth/register (Headers + Body JSON)
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ TẦNG CỔNG VÀO & MÁY CHỦ (SERVER & APPLICATION LAYER)                                   │
-│  • server.js: Khởi động máy chủ, lắng nghe kết nối tại cổng 5000                       │
-│  • app.js: Middleware cors() mở quyền truy cập, express.json() giải mã Body            │
-└────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ TẦNG ĐIỀU HƯỚNG (ROUTING LAYER)                                                        │
-│  • auth.routes.js: Tiếp nhận tiền tố /api/auth, điều phối endpoint /register           │
-└────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ TẦNG ĐIỀU KHIỂN & BẢO VỆ (CONTROLLER LAYER)                                            │
-│  • auth.controller.js:                                                                 │
-│    - Validate dữ liệu đầu vào (Guard Clauses: kiểm tra email, độ dài password)         │
-│    - Gọi Service xử lý nghiệp vụ                                                       │
-│    - Bắt lỗi ngoại lệ và phản hồi mã trạng thái HTTP chuẩn (201, 400, 409, 500)       │
-└────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ TẦNG NGHIỆP VỤ LÕI (SERVICE LAYER)                                                     │
-│  • auth.service.js:                                                                    │
-│    - Kiểm tra trùng lặp email trong cơ sở dữ liệu                                      │
-│    - Băm mật khẩu (Hash) với muối (Salt) 10 vòng bằng bcryptjs                         │
-│    - Lưu bản ghi mới vào PostgreSQL qua Prisma ORM                                     │
-│    - Loại bỏ trường password trước khi trả kết quả về Controller                       │
-└────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ TẦNG LƯU TRỮ VÀ DỮ LIỆU (DATABASE & INFRASTRUCTURE LAYER)                              │
-│  • db.ts: Database Client Singleton duy trì kết nối bền vững                           │
-│  • (Docker) PostgreSQL 16: Bảng "User" lưu trữ an toàn trong Container                 │
-└────────────────────────────────────────────────────────────────────────────────────────┘
+### 1.1. Sơ đồ kiến trúc phân tầng (Architecture Flowchart)
+
+```mermaid
+flowchart TD
+    Client["Client / Postman (Frontend / HTTP Client)"]
+    
+    subgraph ServerLayer["1. TẦNG CỔNG VÀO & MÁY CHỦ (Server & App Layer)"]
+        Server["server.js: Khởi động máy chủ, lắng nghe cổng 5000"]
+        App["app.js: Middleware cors() & express.json()"]
+        Server --> App
+    end
+
+    subgraph RoutingLayer["2. TẦNG ĐIỀU HƯỚNG (Routing Layer)"]
+        Routes["auth.routes.js: Điều hướng endpoint POST /register"]
+    end
+
+    subgraph ControllerLayer["3. TẦNG ĐIỀU KHIỂN & BẢO VỆ (Controller Layer)"]
+        Controller["auth.controller.js: Validate dữ liệu (Guard Clauses) & Xử lý phản hồi HTTP"]
+    end
+
+    subgraph ServiceLayer["4. TẦNG NGHIỆP VỤ LÕI (Service Layer)"]
+        Service["auth.service.js: Kiểm tra trùng email, Băm mật khẩu Bcrypt & Lưu bản ghi"]
+    end
+
+    subgraph DatabaseLayer["5. TẦNG DỮ LIỆU & HẠ TẦNG (Database & Infrastructure Layer)"]
+        DB["db.ts: Prisma Client Singleton"]
+        Postgres[("Docker Container: PostgreSQL 16 (Bảng User)")]
+        DB --> Postgres
+    end
+
+    Client -->|"HTTP POST /api/auth/register"| Server
+    App -->|"Forward Request đã phân giải"| Routes
+    Routes -->|"Ủy thác xử lý"| Controller
+    Controller -->|"registerUserService({ email, password, name })"| Service
+    Service -->|"db.orm.public.User.create()"| DB
+    Service -.->|"User an toàn (loại bỏ password)"| Controller
+    Controller -.->|"HTTP Response 201 Created (JSON)"| Client
+```
+
+### 1.2. Sơ đồ trình tự vòng đời Request - Response (Sequence Lifecycle)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client / Postman
+    participant Server as server.js & app.js
+    participant Route as auth.routes.js
+    participant Controller as auth.controller.js
+    participant Service as auth.service.js
+    participant DB as db.ts (Prisma)
+    participant Postgres as PostgreSQL 16 (Docker)
+
+    Client->>Server: POST /api/auth/register (Headers + JSON Body)
+    Note over Server: cors() mở quyền & express.json() giải mã Body
+    Server->>Route: Chuyển tiếp request tới tiền tố /api/auth
+    Route->>Controller: Gọi registerController(req, res)
+    
+    Note over Controller: Validate: email, password bắt buộc, length >= 6
+    alt Dữ liệu không hợp lệ (Thiếu trường hoặc Password < 6 ký tự)
+        Controller-->>Client: 400 Bad Request
+    else Dữ liệu hợp lệ
+        Controller->>Service: registerUserService({ email, password, name })
+        Service->>DB: User.where({ email }).first()
+        DB->>Postgres: SELECT * FROM "User" WHERE email = $1 LIMIT 1
+        Postgres-->>DB: Trả về kết quả
+        DB-->>Service: Bản ghi tồn tại (nếu có)
+        
+        alt Email đã tồn tại trong hệ thống
+            Service-->>Controller: throw new Error("EMAIL_ALREADY_EXISTS")
+            Controller-->>Client: 409 Conflict (Email đã được sử dụng)
+        else Email khả dụng
+            Note over Service: Sinh muối ngẫu nhiên & Băm mật khẩu (bcryptjs salt 10)
+            Service->>DB: User.create({ email, password: hash, name })
+            DB->>Postgres: INSERT INTO "User" (...) VALUES (...)
+            Postgres-->>DB: Bản ghi mới được tạo
+            DB-->>Service: newUser
+            Note over Service: Bóc tách loại bỏ password: { password: _, ...userSafe }
+            Service-->>Controller: Trả về userSafe
+            Controller-->>Client: 201 Created ({ message: "Đăng ký thành công", user })
+        end
+    end
 ```
 
 ---

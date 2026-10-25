@@ -1,12 +1,74 @@
 // use prisma-8
+// ==============================================================================
+// MỤC LỤC TỔNG QUAN (TABLE OF CONTENTS)
+// Tài liệu hướng dẫn chi tiết: docs/01-register-guide.md
+//
+// 1. [01-contract:model-user] - Định nghĩa Data Contract cho thực thể User trong PostgreSQL
+// ==============================================================================
 
+// ==============================================================================
+// KHUNG HƯỚNG DẪN CODE LẠI (FUNCTION-LEVEL SCAFFOLDING)
+// • Đầu đề định danh (Sub-ID): [01-contract:model-user]
+// • Mục tiêu của cụm logic:
+//   Định nghĩa Data Contract (Lược đồ dữ liệu) cho thực thể User bằng ngôn ngữ PSL,
+//   làm nguồn chân lý duy nhất (Single Source of Truth) để tự động sinh bảng PostgreSQL và Client ORM.
+// • Đầu vào / Đầu ra (Input/Output):
+//   - Đầu vào: Ngôn ngữ PSL (Prisma Schema Language), cờ chỉ thị '// use prisma-8', các trường thuộc tính User.
+//   - Đầu ra: Schema Database hợp lệ để lệnh 'npx prisma contract emit' sinh ra contract.json, contract.d.ts và migration SQL.
+// • Các bước thực hiện:
+//   - Bước 1: Khai báo cờ kích hoạt Prisma 8 bắt buộc tại dòng 1: '// use prisma-8'.
+//   - Bước 2: Khai báo khối 'model User' đại diện cho bảng dữ liệu người dùng (viết theo PascalCase).
+//     + Mã giả: model User { ... }
+//   - Bước 3: Định nghĩa khóa chính tự tăng (Primary Key):
+//     + Mã giả: id Int @id @default(autoincrement())
+//   - Bước 4: Định nghĩa trường email là duy nhất (không trùng lặp):
+//     + Mã giả: email String @unique
+//   - Bước 5: Định nghĩa trường mật khẩu bắt buộc (sẽ lưu hash Bcrypt):
+//     + Mã giả: password String
+//   - Bước 6: Định nghĩa các trường thông tin tùy chọn (có dấu ? cho phép null):
+//     + Mã giả: username String?, name String?
+//   - Bước 7: Định nghĩa các trường mốc thời gian kiểm toán (Audit Timestamps):
+//     + Mã giả: createdAt TimestamptzString @default(now())
+//     + Mã giả: updatedAt temporal.updatedAtString()
+// • Gợi ý khi bí (Hints):
+//   - Từ khóa PSL: "model", "Field Types (Int, String)", "Nullable modifier (?)"
+//   - Thuộc tính PSL: "@id", "@default(autoincrement())", "@unique", "@default(now())"
+//   - Hàm Prisma 8: "temporal.updatedAtString()"
+//   - Lệnh biên dịch CLI: "npx prisma contract emit", "npx prisma migrate dev"
+// ==============================================================================
+
+// Tại sao đặt tên là 'model User'?
+// Theo quy ước của Prisma, tên Model viết hoa chữ cái đầu (PascalCase),
+// sẽ được tự động ánh xạ thành bảng "User" tương ứng trong PostgreSQL.
 model User {
+  // Tại sao dùng '@id' và '@default(autoincrement())'?
+  // - '@id': Đánh dấu đây là Khóa chính (Primary Key), tự động tạo chỉ mục Index tối ưu tốc độ tìm kiếm.
+  // - 'autoincrement()': Tự động tăng số nguyên tuần tự, tiết kiệm dung lượng lưu trữ hơn UUID và tối ưu cấu trúc cây B-Tree trong SQL.
   id        Int      @id @default(autoincrement())
+
+  // Tại sao bắt buộc phải có thuộc tính '@unique'?
+  // Tạo ràng buộc Unique Constraint dưới tầng PostgreSQL; ngăn chặn triệt để 2 tài khoản trùng email
+  // ngay cả khi xảy ra Race Condition ở tầng server; đồng thời giúp lệnh tìm kiếm '.where({ email })' đạt tốc độ tối đa O(log N).
   email     String   @unique
-  password String
+
+  // Tại sao 'password' không có dấu '?' (bắt buộc)?
+  // Mật khẩu là yếu tố xác thực cốt lõi của tài khoản, không được phép rỗng.
+  // Trường này sẽ lưu chuỗi ký tự đã băm (Hash) bởi Bcrypt, tuyệt đối không lưu plain text.
+  password  String
+
+  // Tại sao có dấu '?' ở trường username và name?
+  // Dấu '?' đánh dấu trường này là Tùy chọn (Nullable/Optional), cho phép người dùng đăng ký nhanh
+  // chỉ với email/password trước mà không bắt buộc phải điền tên ngay từ đầu.
   username  String?
   name      String?
+
+  // Tại sao dùng '@default(now())' cho createdAt?
+  // Để Database tự động gán nhãn thời gian tạo bản ghi tại thời điểm ghi dữ liệu,
+  // tầng Backend không cần phải tự tính toán giờ và truyền xuống thủ công.
   createdAt TimestamptzString @default(now())
+
+  // Tại sao cần hàm 'temporal.updatedAtString()'?
+  // Cơ chế tự động của Prisma cập nhật lại mốc thời gian mỗi khi bản ghi có bất kỳ sự thay đổi nào,
+  // phục vụ việc theo dõi lịch sử chỉnh sửa tài khoản (Audit Log).
   updatedAt temporal.updatedAtString()
 }
-

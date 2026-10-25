@@ -1,76 +1,97 @@
 # ==============================================================================
-# KHUNG HƯỚNG DẪN TỰ CODE LẠI TỪ ĐẦU (SCAFFOLDING GUIDE)
-# ==============================================================================
+# MỤC LỤC TỔNG QUAN (TABLE OF CONTENTS)
+# Tài liệu hướng dẫn chi tiết: docs/01-register-guide.md
 #
-# • Mục tiêu của file:
-#   Tự động hóa việc tải, cấu hình và khởi chạy cơ sở dữ liệu PostgreSQL trong môi trường
-#   cô lập (Docker container) phục vụ phát triển ứng dụng Fullstack mà không cần cài đặt cục bộ.
-#
-# • Các công cụ / Image cần dùng:
-#   - Docker & Docker Compose: Công cụ đóng gói và điều phối container.
-#   - Image 'postgres:alpine': Bản phân phối PostgreSQL chính thức dựa trên nền tảng Alpine Linux siêu nhẹ.
-#
-# • Các bước thực hiện:
-#   Bước 1: Khai báo khối 'services' - định nghĩa danh sách các ứng dụng/dịch vụ cần chạy.
-#   Bước 2: Định nghĩa service cơ sở dữ liệu (ví dụ: 'postgres'):
-#           - Chỉ định base image và tag phiên bản (ưu tiên alpine để tiết kiệm tài nguyên).
-#           - Đặt tên container cố định để dễ quản lý qua CLI.
-#           - Thiết lập chính sách tự khởi động lại khi gặp sự cố.
-#   Bước 3: Thiết lập các biến môi trường khởi tạo ('environment'):
-#           - Cung cấp User, Password, Database Name mặc định mà Postgres yêu cầu khi boot lần đầu.
-#   Bước 4: Ánh xạ cổng ('ports'):
-#           - Map cổng máy thật (Host) vào cổng của container theo quy tắc: [Host_Port]:[Container_Port].
-#   Bước 5: Thiết lập tính bền vững dữ liệu ('volumes'):
-#           - Ánh xạ một Named Volume từ máy thật vào thư mục lưu trữ dữ liệu mặc định của Postgres.
-#   Bước 6: Khai báo Named Volume ở cấp gốc (root level) để Docker Compose cấp phát tài nguyên lưu trữ.
-#
-# • Gợi ý khi bí (Hints để tra cứu Docs):
-#   - Thuộc tính cấu hình: 'services', 'image', 'container_name', 'restart', 'environment', 'ports', 'volumes'
-#   - Khái niệm Docker: "Named Volume", "Port Forwarding / Mapping", "Container Persistence"
-#   - Lệnh điều khiển CLI: 'docker compose up -d', 'docker compose down', 'docker compose ps', 'docker exec'
-#   - Đường dẫn dữ liệu mặc định của Postgres: '/var/lib/postgresql/data'
+# 1. [01-docker-compose:service-postgres] - Khai báo & cấu hình dịch vụ cơ sở dữ liệu PostgreSQL
+# 2. [01-docker-compose:named-volumes]    - Khai báo không gian lưu trữ dữ liệu bền vững (Named Volume)
 # ==============================================================================
 
 services:
+  # ==============================================================================
+  # KHUNG HƯỚNG DẪN CODE LẠI (FUNCTION-LEVEL SCAFFOLDING)
+  # • Đầu đề định danh (Sub-ID): [01-docker-compose:service-postgres]
+  # • Mục tiêu của cụm logic:
+  #   Tự động tải, cấu hình thông số mạng và khởi chạy container PostgreSQL 16 cô lập phục vụ dự án.
+  # • Đầu vào / Đầu ra (Input/Output):
+  #   - Đầu vào: Docker Engine, thông tin đăng nhập DB (User, Password, Database Name), cổng mạng và volume lưu trữ.
+  #   - Đầu ra: Tiến trình Container 'fullstack_postgres' lắng nghe cổng mạng TCP 5432 trên máy chủ.
+  # • Các bước thực hiện:
+  #   - Bước 1: Khai báo service với image PostgreSQL bản Alpine siêu nhẹ.
+  #     + Mã giả: service.postgres.image = 'postgres:phiên_bản-alpine'
+  #   - Bước 2: Đặt tên định danh cố định cho container và chính sách tự phục hồi khi gặp sự cố.
+  #     + Mã giả: service.postgres.container_name = 'tên_container_cố_định'
+  #     + Mã giả: service.postgres.restart = 'always'
+  #   - Bước 3: Cung cấp các biến môi trường khởi tạo tài khoản và database mặc định theo yêu cầu của image.
+  #     + Mã giả: service.postgres.environment = { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB }
+  #   - Bước 4: Ánh xạ cổng mạng giữa máy chủ thật (Host) và container theo quy tắc [Host_Port]:[Container_Port].
+  #     + Mã giả: service.postgres.ports = ['cổng_host:cổng_container']
+  #   - Bước 5: Gắn kết thư mục lưu trữ dữ liệu mặc định của Postgres vào Named Volume độc lập.
+  #     + Mã giả: service.postgres.volumes = ['tên_named_volume:đường_dẫn_dữ_liệu_trong_container']
+  # • Gợi ý khi bí (Hints):
+  #   - Cấu trúc Compose: "services", "image", "container_name", "restart", "environment", "ports", "volumes"
+  #   - Khái niệm kiến trúc: "Port Forwarding / Binding", "Container Ephemeral vs Persistence", "Alpine Linux Distribution"
+  #   - Biến môi trường chuẩn Postgres: "Official PostgreSQL Docker Environment Variables (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)"
+  #   - Đường dẫn dữ liệu Postgres: "PostgreSQL internal data directory (/var/lib/postgresql/data)"
+  # ==============================================================================
   postgres:
     # Tại sao chọn 'postgres:16-alpine'?
-    # Alpine Linux là bản phân phối siêu tối giản (~40MB thay vì ~400MB bản chuẩn),
-    # giúp tiết kiệm tối đa RAM và tốc độ tải image về máy nhanh hơn gấp nhiều lần.
+    # Alpine Linux là bản phân phối siêu tối giản (~40MB thay vì ~400MB của bản thông thường),
+    # giúp tối ưu hóa dung lượng ổ đĩa, tiết kiệm RAM và tăng tốc độ tải image khi khởi tạo môi trường.
     image: postgres:16-alpine
 
     # Tại sao cần đặt 'container_name'?
-    # Giúp định danh container với một cái tên cố định dễ nhớ, phục vụ việc chạy các lệnh CLI
-    # như `docker exec -it fullstack_postgres psql` mà không phải tìm ID ngẫu nhiên của Docker.
+    # Tạo tên định danh cố định thay vì để Docker sinh mã hash ngẫu nhiên.
+    # Giúp lập trình viên dễ dàng thao tác qua CLI như xem log (`docker logs -f fullstack_postgres`)
+    # hoặc truy cập bash terminal (`docker exec -it fullstack_postgres psql`).
     container_name: fullstack_postgres
 
     # Tại sao dùng 'restart: always'?
-    # Đảm bảo dịch vụ DB luôn sẵn sàng: Container sẽ tự khởi động lại nếu bị crash
-    # hoặc khi bạn khởi động lại máy tính mà không cần gõ lệnh bật lại bằng tay.
+    # Cơ chế tự phục hồi (High Availability / Fault Tolerance):
+    # Container sẽ tự khởi động lại nếu tiến trình DB bị crash bất ngờ hoặc khi hệ điều hành máy chủ khởi động lại.
     restart: always
 
-    # Tại sao cần khối 'environment' này?
-    # Image chính thức của PostgreSQL yêu cầu các thông số này để tự động chạy script
-    # khởi tạo user quản trị và database mặc định ngay trong lần đầu tiên container khởi chạy.
+    # Tại sao cần khối 'environment' với các biến POSTGRES_*?
+    # Script khởi tạo (entrypoint script) chính thức của image PostgreSQL sẽ đọc các biến này
+    # để tự động tạo Superuser, thiết lập mật khẩu và khởi tạo Database mặc định ngay lần boot đầu tiên.
     environment:
-      POSTGRES_USER: dev_user # Tài khoản kết nối DB (dùng trong chuỗi DATABASE_URL)
-      POSTGRES_PASSWORD: dev_password # Mật khẩu kết nối DB
-      POSTGRES_DB: fullstack_db # Tên Database được tạo sẵn khi container khởi động
+      POSTGRES_USER: dev_user # Tài khoản quản trị kết nối DB (dùng trong DATABASE_URL của backend)
+      POSTGRES_PASSWORD: dev_password # Mật khẩu xác thực kết nối DB
+      POSTGRES_DB: fullstack_db # Tên cơ sở dữ liệu ban đầu cho dự án
 
-    # Tại sao map '5432:5432'?
-    # Quy tắc: [Cổng máy Host]:[Cổng Container]. Mở cổng 5432 trên máy thật để các tiến trình ngoài Docker
-    # (như Node.js app chạy localhost:5000, DBeaver, Prisma Studio) có thể kết nối vào DB bên trong container.
+    # Tại sao map '"5432:5432"'?
+    # Cú pháp quy định: "[Cổng máy Host]:[Cổng bên trong Container]".
+    # Mở cổng mạng 5432 của máy thật liên kết trực tiếp vào cổng 5432 của Postgres container,
+    # cho phép ứng dụng Node.js ngoài Docker, Prisma ORM hoặc GUI Tool (DBeaver) kết nối vào.
     ports:
       - "5432:5432"
 
     # Tại sao phải ánh xạ 'volumes'?
-    # Container bản chất là vô trạng thái (ephemeral - xóa container là mất dữ liệu).
-    # Ánh xạ ra Named Volume giúp toàn bộ file DB được lưu an toàn trên ổ cứng máy thật,
-    # đảm bảo tắt máy hoặc restart container thì dữ liệu không bao giờ bị mất.
+    # Container mặc định có tính chất vô trạng thái (Ephemeral): Xóa container là mất toàn bộ dữ liệu.
+    # Gắn kết vào Named Volume giúp toàn bộ file vật lý của DB được lưu độc lập trên ổ cứng máy host,
+    # đảm bảo tính bền vững (Persistence) dù container có bị xóa hoặc tạo mới lại.
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-# Khai báo Named Volume ở cấp cao nhất (root-level)
-# Báo cho Docker Engine biết cần khởi tạo một không gian lưu trữ độc lập trên ổ đĩa
-# để gắn kết (mount) vào thư mục '/var/lib/postgresql/data' của container ở trên.
+# ==============================================================================
+# KHUNG HƯỚNG DẪN CODE LẠI (FUNCTION-LEVEL SCAFFOLDING)
+# • Đầu đề định danh (Sub-ID): [01-docker-compose:named-volumes]
+# • Mục tiêu của cụm logic:
+#   Khai báo tài nguyên lưu trữ độc lập ở cấp gốc (root-level) để Docker Engine quản lý vòng đời dữ liệu.
+# • Đầu vào / Đầu ra (Input/Output):
+#   - Đầu vào: Tên định danh của Named Volume ('postgres_data').
+#   - Đầu ra: Một không gian lưu trữ vật lý trên máy host được Docker quản lý bền vững.
+# • Các bước thực hiện:
+#   - Bước 1: Khai báo từ khóa gốc 'volumes' ở cấp cao nhất của file cấu hình.
+#     + Mã giả: volumes:
+#   - Bước 2: Đăng ký tên định danh volume trùng khớp với tên volume đã mount trong service ở trên.
+#     + Mã giả:   tên_volume_đã_dùng:
+# • Gợi ý khi bí (Hints):
+#   - Từ khóa Compose: "Top-level volumes key", "Named Volumes vs Host Bind Mounts"
+#   - Lệnh kiểm tra Docker CLI: "docker volume ls", "docker volume inspect"
+# ==============================================================================
+
+# Tại sao khai báo 'volumes:' ở cấp cao nhất (root-level)?
+# Thông báo cho Docker Engine cấp phát và quản lý một không gian lưu trữ vật lý độc lập (Named Volume)
+# tách rời hoàn toàn khỏi vòng đời của bất kỳ container nào, cho phép dữ liệu tồn tại vĩnh viễn.
 volumes:
   postgres_data:
