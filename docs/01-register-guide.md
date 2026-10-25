@@ -4,7 +4,32 @@
 
 ---
 
-## 📋 BẢNG TÓM TẮT QUY TRÌNH THỰC HIỆN TỪ ĐẦU (STEP-BY-STEP ROADMAP)
+<a id="mục-lục"></a>
+## 📌 Mục lục (Table of Contents)
+
+- [📋 Bảng tóm tắt lộ trình thực hiện từ đầu](#bảng-tóm-tắt-lộ-trình-thực-hiện-từ-đầu)
+- [1. Sơ đồ luồng dữ liệu tổng quan](#1-sơ-đồ-luồng-dữ-liệu-tổng-quan)
+  - [1.1. Sơ đồ kiến trúc phân tầng (Architecture Flow)](#11-sơ-đồ-kiến-trúc-phân-tầng-architecture-flow)
+  - [1.2. Sơ đồ chi tiết vòng đời xử lý Request - Response (Sequence Lifecycle)](#12-sơ-đồ-chi-tiết-vòng-đời-xử-lý-request---response-sequence-lifecycle)
+- [2. Giai đoạn 1: Thiết lập hạ tầng & Dự án (Setup)](#2-giai-đoạn-1-thiết-lập-hạ-tầng--dự-án-setup)
+  - [Bước 1.1: Khởi tạo hạ tầng Cơ sở dữ liệu với Docker Compose](#bước-11-khởi-tạo-hạ-tầng-cơ-sở-dữ-liệu-với-docker-compose)
+  - [Bước 1.2: Khởi tạo thư mục và dự án Backend Node.js](#bước-12-khởi-tạo-thư-mục-và-dự-án-backend-nodejs)
+  - [Bước 1.3: Cấu hình biến môi trường (backend/.env & backend/.env.example)](#bước-13-cấu-hình-biến-môi-trường-backendenv--backendenvexample)
+  - [Bước 1.4: Thiết kế lược đồ Cơ sở dữ liệu với Prisma (Schema Design)](#bước-14-thiết-kế-lược-đồ-cơ-sở-dữ-liệu-với-prisma-schema-design)
+  - [Bước 1.5: Khởi tạo Database Client Singleton](#bước-15-khởi-tạo-database-client-singleton)
+- [3. Giai đoạn 2: Xây dựng tính năng theo 3 tầng kiến trúc (Service, Controller, Routes)](#3-giai-đoạn-2-xây-dựng-tính-năng-theo-3-tầng-kiến-trúc-service-controller-routes)
+  - [Bước 2.1: Tầng Service (backend/src/services/auth.service.js) - Xử lý nghiệp vụ lõi](#bước-21-tầng-service-backendsrcservicesauthservicejs---xử-lý-nghiệp-vụ-lõi)
+  - [Bước 2.2: Tầng Controller (backend/src/controllers/auth.controller.js) - Xử lý HTTP Request/Response](#bước-22-tầng-controller-backendsrccontrollersauthcontrollerjs---xử-lý-http-requestresponse)
+  - [Bước 2.3: Tầng Routes & Express Server - Mở cổng kết nối mạng](#bước-23-tầng-routes--express-server---mở-cổng-kết-nối-mạng)
+- [4. Giai đoạn 3: Kiểm thử toàn diện với Postman (Bảng Test Cases)](#4-giai-đoạn-3-kiểm-thử-toàn-diện-với-postman-bảng-test-cases)
+  - [Lệnh chạy khởi động hệ thống Backend](#lệnh-chạy-khởi-động-hệ-thống-backend)
+  - [Bảng 5 Kịch bản Kiểm thử chi tiết (Test Cases Checklist)](#bảng-5-kịch-bản-kiểm-thử-chi-tiết-test-cases-checklist)
+- [5. Sổ tay lỗi kinh điển cần tránh (Lessons Learned)](#5-sổ-tay-lỗi-kinh-điển-cần-tránh-lessons-learned)
+
+---
+
+<a id="bảng-tóm-tắt-lộ-trình-thực-hiện-từ-đầu"></a>
+## 📋 Bảng tóm tắt lộ trình thực hiện từ đầu (Step-by-Step Roadmap)
 
 Bảng tổng hợp lộ trình 3 giai đoạn giúp lập trình viên bao quát toàn bộ tiến trình, tra cứu nhanh mã Sub-ID và đối chiếu kết quả đầu ra khi tự code lại từ đầu:
 
@@ -25,10 +50,12 @@ Bảng tổng hợp lộ trình 3 giai đoạn giúp lập trình viên bao quá
 
 ---
 
+<a id="1-sơ-đồ-luồng-dữ-liệu-tổng-quan"></a>
 ## 1. Sơ đồ luồng dữ liệu tổng quan
 
 Mô hình dữ liệu di chuyển theo kiến trúc phân tầng một chiều (Unidirectional Layered Architecture), đảm bảo triệt để nguyên tắc đơn trách nhiệm (Single Responsibility Principle):
 
+<a id="11-sơ-đồ-kiến-trúc-phân-tầng-architecture-flow"></a>
 ### 1.1. Sơ đồ kiến trúc phân tầng (Architecture Flow)
 
 ```text
@@ -74,6 +101,7 @@ Mô hình dữ liệu di chuyển theo kiến trúc phân tầng một chiều (
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+<a id="12-sơ-đồ-chi-tiết-vòng-đời-xử-lý-request---response-sequence-lifecycle"></a>
 ### 1.2. Sơ đồ chi tiết vòng đời xử lý Request - Response (Sequence Lifecycle)
 
 ```text
@@ -133,10 +161,14 @@ Mô hình dữ liệu di chuyển theo kiến trúc phân tầng một chiều (
                 [Client / Postman] <── { message: "Đăng ký thành công", user: userSafe }
 ```
 
+[⬆️ Quay lại Mục lục](#mục-lục)
+
 ---
 
+<a id="2-giai-đoạn-1-thiết-lập-hạ-tầng--dự-án-setup"></a>
 ## 2. Giai đoạn 1: Thiết lập hạ tầng & Dự án (Setup)
 
+<a id="bước-11-khởi-tạo-hạ-tầng-cơ-sở-dữ-liệu-với-docker-compose"></a>
 ### Bước 1.1: Khởi tạo hạ tầng Cơ sở dữ liệu với Docker Compose
 - **Tập tin cấu hình:** `docker-compose.yml` (đặt tại thư mục gốc dự án `fullstack/`).
 - **Hướng dẫn tư duy logic:** Thay vì cài đặt trực tiếp phần mềm PostgreSQL cồng kềnh lên hệ điều hành máy thật (dễ gây xung đột cổng, ô nhiễm registry và khó xóa sạch dữ liệu), ta dùng Docker Compose để đóng gói Database vào một Container độc lập. Khi muốn xóa toàn bộ dữ liệu để luyện code lại từ đầu, ta chỉ cần gõ 1 lệnh là có ngay cơ sở dữ liệu mới tinh.
@@ -182,6 +214,7 @@ docker compose up -d
 
 ---
 
+<a id="bước-12-khởi-tạo-thư-mục-và-dự-án-backend-nodejs"></a>
 ### Bước 1.2: Khởi tạo thư mục và dự án Backend Node.js
 
 #### A. Tạo thư mục làm việc:
@@ -336,9 +369,11 @@ npm install -D prisma nodemon
 
 ---
 
-### Bước 1.3: Cấu hình biến môi trường (`backend/.env`)
+<a id="bước-13-cấu-hình-biến-môi-trường-backendenv--backendenvexample"></a>
+### Bước 1.3: Cấu hình biến môi trường (`backend/.env` & `backend/.env.example`)
 - **Tập tin:** `backend/.env`
-- **Hướng dẫn tư duy logic:** Tuyệt đối không bao giờ hardcode mật khẩu Database hay cổng Port vào code JavaScript. File `.env` sẽ nằm trong `.gitignore` để không bị commit lên GitHub, bảo vệ an toàn thông tin đăng nhập của hệ thống.
+- **Hướng dẫn tư duy logic:** Tuyệt đối không bao giờ hardcode mật khẩu Database hay cổng Port vào code JavaScript. File `.env` sẽ nằm trong `.gitignore` để không bị commit lên GitHub, bảo vệ an toàn thông tin đăng nhập của hệ thống. Đồng thời tạo file `.env.example` làm mẫu cấu hình cho các thành viên trong đội ngũ.
+
 ```env
 PORT=5000
 DATABASE_URL="postgresql://dev_user:dev_password@localhost:5432/fullstack_db?schema=public"
@@ -347,7 +382,8 @@ DATABASE_URL="postgresql://dev_user:dev_password@localhost:5432/fullstack_db?sch
 > 📂 **MINH HỌA SỰ TIẾN HÓA CỦA THƯ MỤC:**
 > ```text
 > backend/
-> ├── 📄 .env                    <-- [MỚI TẠO BẰNG TAY] Chứa chuỗi kết nối Database PostgreSQL và cấu hình Port
+> ├── 📄 .env                    <-- [MỚI TẠO BẰNG TAY] Chứa chuỗi kết nối Database PostgreSQL và cấu hình Port thực tế
+> ├── 📄 .env.example            <-- [MỚI TẠO BẰNG TAY] Tệp mẫu đẩy lên Git để người khác biết cách cấu hình biến
 > ├── 📁 node_modules/
 > ├── 📄 package-lock.json
 > └── 📄 package.json
@@ -355,13 +391,16 @@ DATABASE_URL="postgresql://dev_user:dev_password@localhost:5432/fullstack_db?sch
 
 ---
 
+<a id="bước-14-thiết-kế-lược-đồ-cơ-sở-dữ-liệu-với-prisma-schema-design"></a>
 ### Bước 1.4: Thiết kế lược đồ Cơ sở dữ liệu với Prisma (Schema Design)
 - **Tập tin:** `backend/src/prisma/contract.prisma`
 - **Hướng dẫn tư duy logic:**
+  - `// use prisma-8`: Bắt buộc nằm ở dòng 1 để kích hoạt engine Prisma v8.
   - `email String @unique`: Tạo ràng buộc duy nhất (Unique Constraint) ngay tại tầng Database. Điều này đảm bảo tính toàn vẹn dữ liệu, ngăn ngừa triệt để lỗi đăng ký trùng email ngay cả khi có 2 request gửi lên cùng một phần nghìn giây (Race condition).
   - `password String`: Trường lưu trữ chuỗi hash mật khẩu (tuyệt đối không để null).
 
 ```prisma
+// use prisma-8
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -394,6 +433,7 @@ npx prisma contract emit
 
 ---
 
+<a id="bước-15-khởi-tạo-database-client-singleton"></a>
 ### Bước 1.5: Khởi tạo Database Client Singleton
 - **Tập tin:** `backend/src/prisma/db.ts`
 - **Hướng dẫn tư duy logic:** Áp dụng mẫu thiết kế **Singleton Pattern**. Ta chỉ khởi tạo một đối tượng kết nối `db` duy nhất và export ra cho toàn bộ ứng dụng dùng chung. Nếu mỗi file hay mỗi request đều tạo một `new Client()`, server sẽ nhanh chóng làm sập PostgreSQL vì cạn kiệt Connection Pool.
@@ -411,10 +451,14 @@ export const db = postgres({
 });
 ```
 
+[⬆️ Quay lại Mục lục](#mục-lục)
+
 ---
 
+<a id="3-giai-đoạn-2-xây-dựng-tính-năng-theo-3-tầng-kiến-trúc-service-controller-routes"></a>
 ## 3. Giai đoạn 2: Xây dựng tính năng theo 3 tầng kiến trúc (Service, Controller, Routes)
 
+<a id="bước-21-tầng-service-backendsrcservicesauthservicejs---xử-lý-nghiệp-vụ-lõi"></a>
 ### Bước 2.1: Tầng Service (`backend/src/services/auth.service.js`) - Xử lý nghiệp vụ lõi
 - **Hướng dẫn tư duy logic:**
   1. **Không nhận `req` hay `res`:** Tầng Service phải là một module thuần túy (pure logic), độc lập với framework web (Express). Điều này giúp ta có thể dễ dàng viết Unit Test tự động cho hàm này mà không cần giả lập (mock) đối tượng HTTP Request/Response.
@@ -462,6 +506,7 @@ export default registerUserService;
 
 ---
 
+<a id="bước-22-tầng-controller-backendsrccontrollersauthcontrollerjs---xử-lý-http-requestresponse"></a>
 ### Bước 2.2: Tầng Controller (`backend/src/controllers/auth.controller.js`) - Xử lý HTTP Request/Response
 - **Hướng dẫn tư duy logic:**
   1. **Kỹ thuật Guard Clauses (Early Return):** Kiểm tra tính hợp lệ của dữ liệu ngay đầu hàm. Nếu thiếu email hoặc mật khẩu < 6 ký tự, lập tức ngắt hàm và trả về mã lỗi `400 Bad Request`. Cách viết này giúp mã nguồn phẳng (flat code), tránh việc lồng các khối `if...else` nhiều tầng khó bảo trì.
@@ -513,6 +558,7 @@ export default registerController;
 
 ---
 
+<a id="bước-23-tầng-routes--express-server---mở-cổng-kết-nối-mạng"></a>
 ### Bước 2.3: Tầng Routes & Express Server - Mở cổng kết nối mạng
 
 #### A. Định tuyến: `backend/src/routes/auth.routes.js`
@@ -580,10 +626,14 @@ app.listen(PORT, () => {
 > └── 📄 server.js               # Khởi động và lắng nghe cổng Port 5000
 > ```
 
+[⬆️ Quay lại Mục lục](#mục-lục)
+
 ---
 
+<a id="4-giai-đoạn-3-kiểm-thử-toàn-diện-với-postman-bảng-test-cases"></a>
 ## 4. Giai đoạn 3: Kiểm thử toàn diện với Postman (Bảng Test Cases)
 
+<a id="lệnh-chạy-khởi-động-hệ-thống-backend"></a>
 ### Lệnh chạy khởi động hệ thống Backend:
 ```bash
 npm run dev
@@ -603,6 +653,7 @@ npm run dev
 
 ---
 
+<a id="bảng-5-kịch-bản-kiểm-thử-chi-tiết-test-cases-checklist"></a>
 ### Bảng 5 Kịch bản Kiểm thử chi tiết (Test Cases Checklist):
 
 - **Cấu hình trên Postman:**
@@ -619,8 +670,11 @@ npm run dev
 | **TC4** | **Conflict**<br>(Đăng ký trùng email đã có) | `{"email": "hocfullstack@gmail.com", "password": "password123"}` *(Gửi lại đúng dữ liệu TC1)* | `{ "message": "email này đã được sử dụng" }` | `409 Conflict` | Kiểm tra câu truy vấn tìm kiếm email của Service và khả năng bắt lỗi trùng lặp gán mã 409 của Controller. |
 | **TC5** | **Security DB**<br>(Kiểm tra trực tiếp PostgreSQL) | Chạy câu lệnh soi dữ liệu trong container PostgreSQL | Bản ghi có cột `password` mang giá trị băm dạng: `$2a$10$wK...` | Thành công | Đảm bảo mật khẩu được bảo vệ an toàn ngay cả khi Database bị hacker đánh cắp toàn bộ file dữ liệu. |
 
+[⬆️ Quay lại Mục lục](#mục-lục)
+
 ---
 
+<a id="5-sổ-tay-lỗi-kinh-điển-cần-tránh-lessons-learned"></a>
 ## 5. Sổ tay lỗi kinh điển cần tránh (Lessons Learned)
 
 1. **Lỗi `ERR_MODULE_NOT_FOUND` (Quên đuôi mở rộng `.js`):**
@@ -654,3 +708,5 @@ npm run dev
 6. **Bản chất khác biệt giữa Docker và `DATABASE_URL`:**
    - *Hiểu lầm thường gặp:* Nghĩ rằng dùng Docker thì không cần `DATABASE_URL`.
    - *Bản chất kỹ thuật:* Docker là "cái nhà" chứa phần mềm PostgreSQL đang chạy ngầm. `DATABASE_URL` là "địa chỉ nhà" để code Node.js biết đường kết nối vào container đó.
+
+[⬆️ Quay lại Mục lục](#mục-lục)
